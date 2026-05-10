@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AI Image Enhancer Pro - Offline alat za slike</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* sprecava selekciju teksta radi cisćeg UI, ali inputi ostaju funkcionalni */
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1f2e 0%, #2a2f3f 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #eee;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(30, 35, 48, 0.8);
+            backdrop-filter: blur(2px);
+            border-radius: 32px;
+            padding: 20px 24px 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        h1 small {
+            font-size: 0.7rem;
+            background: #3a3f55;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: normal;
+            color: #bbd9ff;
+        }
+        .sub {
+            color: #aaa;
+            margin-bottom: 28px;
+            border-left: 3px solid #4c9aff;
+            padding-left: 16px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            align-items: center;
+            background: #222733;
+            padding: 12px 18px;
+            border-radius: 60px;
+        }
+        .file-input-wrap {
+            background: #2a3042;
+            padding: 6px 14px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .file-input-wrap:hover {
+            background: #3a415a;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background: #3c445e;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button.primary {
+            background: #2d7aff;
+            box-shadow: 0 4px 12px rgba(45,122,255,0.3);
+        }
+        button.primary:hover {
+            background: #1b62e0;
+            transform: scale(1.02);
+        }
+        button.danger {
+            background: #5a3e3e;
+        }
+        button:hover {
+            background: #5a658b;
+            transform: translateY(-1px);
+        }
+        .control-group {
+            background: #1e2330;
+            border-radius: 28px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+        }
+        .control-title {
+            font-weight: bold;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #3a4055;
+            padding-bottom: 8px;
+        }
+        .slider-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .slider-item {
+            flex: 1;
+            min-width: 150px;
+        }
+        label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            display: block;
+            margin-bottom: 6px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #2f354a;
+            height: 4px;
+            border-radius: 5px;
+        }
+        .value-display {
+            background: #0f121c;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 6px;
+        }
+        .image-panels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-top: 28px;
+        }
+        .panel {
+            flex: 1;
+            min-width: 280px;
+            background: #131725;
+            border-radius: 28px;
+            padding: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .panel h3 {
+            margin-top: 0;
+            text-align: center;
+            font-weight: 500;
+        }
+        canvas {
+            width: 100%;
+            background: #0a0e18;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            margin-top: 8px;
+            cursor: pointer;
+        }
+        .image-container {
+            position: relative;
+            text-align: center;
+        }
+        .zoom-info {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 8px;
+            opacity: 0.7;
+        }
+        .download-options {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        footer {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        @media (max-width: 780px) {
+            .toolbar { border-radius: 28px; flex-direction: column; align-items: stretch; }
+            .slider-container { flex-direction: column; }
+        }
+        .badge {
+            background: #4a9eff20;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+        }
+        hr {
+            border-color: #2f354a;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🖼️ ULTRA IMAGE PROCESSOR <small>offline | sharpen · denoise · deblur · upscale</small></h1>
+    <div class="sub">🔧 Poboljšaj rezoluciju, smanji šum, izoštri, smanji zamućenje — sve u tvom browseru, bez interneta!</div>
+
+    <div class="toolbar">
+        <div class="file-input-wrap" onclick="document.getElementById('imageUpload').click()">
+            📁 Učitaj sliku
+            <input type="file" id="imageUpload" accept="image/jpeg,image/png,image/webp,image/bmp">
+        </div>
+        <button id="resetBtn" class="danger">⟳ Resetuj sve filtere</button>
+        <button id="applyBtn" class="primary">✨ Primeni efekte</button>
+        <span class="badge">⚡ Realtime priprema, klik "Primeni" za render</span>
+    </div>
+
+    <div class="control-group">
+        <div class="control-title">🔍 UPSCALE (povećaj rezoluciju) <span style="font-size:12px;">[Bicubic interpolacija]</span></div>
+        <div class="slider-container">
+            <div class="slider-item">
+                <label>Faktor uvećanja: <span id="scaleVal">1.0</span>x</label>
+                <input type="range" id="scaleSlider" min="0.5" max="3.0" step="0.05" value="1.0">
+                <div class="value-display">0.5x (smanji) — 3.0x (uvećaj)</div>
+            </div>
+        </div>
+        <div style="margin-top: 8px; font-size: 0.7rem;">⚠️ Napomena: uvećanje koristi glatku interpolaciju (nema AI detalja, ali čuva oštrinu)</div>
+    </div>
+
+    <div class="control-group">
+        <div class="control-title">✨ SHARPEN (izoštravanje)</div>
+        <div class="slider-container">
+            <div class="slider-item">
+                <label>Intenzitet oštrenja: <span id="sharpenVal">0.0</span></label>
+                <input type="range" id="sharpenSlider" min="0" max="2.0" step="0.02" value="0.6">
+                <div class="value-display">0 = isključeno, veće vrijednosti = jače oštrenje</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="control-title">🌫️ DENOISE (smanjenje šuma) - Median filter</div>
+        <div class="slider-container">
+            <div class="slider-item">
+                <label>Jačina denoisinga: <span id="denoiseVal">0</span></label>
+                <input type="range" id="denoiseSlider" min="0" max="4" step="1" value="0">
+                <div class="value-display">0 = off, 1 = slabo, 2 = umjereno, 3 = jako, 4 = maksimalno</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="control-title">🌀 DEBLUR (smanjenje zamućenja) - unsharp mask + high-pass</div>
+        <div class="slider-container">
+            <div class="slider-item">
+                <label>Deblur jačina: <span id="deblurVal">0.0</span></label>
+                <input type="range" id="deblurSlider" min="0" max="1.8" step="0.02" value="0.4">
+                <div class="value-display">Pomaže kod blagog zamućenja (nije čudotvoran)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="image-panels">
+        <div class="panel">
+            <h3>📸 Originalna slika</h3>
+            <div class="image-container">
+                <canvas id="originalCanvas" width="500" height="400" style="width:100%; height:auto; background:#0a0e18;"></canvas>
+                <div class="zoom-info">Klikni za učitavanje slike</div>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>✨ Poboljšana slika</h3>
+            <div class="image-container">
+                <canvas id="enhancedCanvas" width="500" height="400" style="width:100%; height:auto; background:#0a0e18;"></canvas>
+                <div class="zoom-info">Rezultat nakon "Primeni efekte"</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="download-options">
+        <button id="downloadPNG" class="primary">📥 Preuzmi kao PNG (bežično)</button>
+        <button id="downloadJPG">📥 Preuzmi kao JPG (kvalitet 92%)</button>
+        <button id="downloadWebP">📥 Preuzmi kao WebP (gubitna kompresija)</button>
+    </div>
+    <footer>
+        ⚙️ Sva obrada se izvrsava lokalno u tvom pregledniku. Denoise koristi median filter, Deblur koristi unsharp mask tehniku. Upscale koristi kvalitetnu interpolaciju.
+    </footer>
+</div>
+
+<script>
+    (function(){
+        // DOM elementi
+        const upload = document.getElementById('imageUpload');
+        const originalCanvas = document.getElementById('originalCanvas');
+        const enhancedCanvas = document.getElementById('enhancedCanvas');
+        const ctxOrig = originalCanvas.getContext('2d');
+        const ctxEnh = enhancedCanvas.getContext('2d');
+        
+        // Sliders i display
+        const scaleSlider = document.getElementById('scaleSlider');
+        const scaleVal = document.getElementById('scaleVal');
+        const sharpenSlider = document.getElementById('sharpenSlider');
+        const sharpenVal = document.getElementById('sharpenVal');
+        const denoiseSlider = document.getElementById('denoiseSlider');
+        const denoiseVal = document.getElementById('denoiseVal');
+        const deblurSlider = document.getElementById('deblurSlider');
+        const deblurVal = document.getElementById('deblurVal');
+        
+        const resetBtn = document.getElementById('resetBtn');
+        const applyBtn = document.getElementById('applyBtn');
+        
+        // download dugmici
+        const downloadPNG = document.getElementById('downloadPNG');
+        const downloadJPG = document.getElementById('downloadJPG');
+        const downloadWebP = document.getElementById('downloadWebP');
+        
+        // state slike
+        let originalImageData = null;     // ImageBitmap ili Image element original
+        let originalImgElement = null;
+        let currentDisplayWidth = 0, currentDisplayHeight = 0;
+        let originalWidth = 0, originalHeight = 0;
+        
+        // funkcija za azuriranje vrijednosti na ekranu
+        function updateSlidersDisplay(){
+            scaleVal.innerText = parseFloat(scaleSlider.value).toFixed(2);
+            sharpenVal.innerText = parseFloat(sharpenSlider.value).toFixed(2);
+            denoiseVal.innerText = denoiseSlider.value;
+            deblurVal.innerText = parseFloat(deblurSlider.value).toFixed(2);
+        }
+        
+        scaleSlider.addEventListener('input', updateSlidersDisplay);
+        sharpenSlider.addEventListener('input', updateSlidersDisplay);
+        denoiseSlider.addEventListener('input', updateSlidersDisplay);
+        deblurSlider.addEventListener('input', updateSlidersDisplay);
+        
+        // reset filtera na default
+        resetBtn.addEventListener('click', () => {
+            scaleSlider.value = "1.0";
+            sharpenSlider.value = "0.6";
+            denoiseSlider.value = "0";
+            deblurSlider.value = "0.4";
+            updateSlidersDisplay();
+            if(originalImageData && originalImgElement){
+                applyAllFilters();
+            } else {
+                alert("Prvo učitaj sliku.");
+            }
+        });
+        
+        // ucitaj sliku
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const img = new Image();
+            img.onload = () => {
+                originalImgElement = img;
+                originalWidth = img.width;
+                originalHeight = img.height;
+                // postavi original canvas dimenzije (display)
+                originalCanvas.width = originalWidth;
+                originalCanvas.height = originalHeight;
+                ctxOrig.drawImage(img, 0, 0, originalWidth, originalHeight);
+                // automatski primijeni filtere na pocetku
+                applyAllFilters();
+            };
+            img.onerror = () => { alert("Ne može učitati sliku"); };
+            img.src = URL.createObjectURL(file);
+        });
+        
+        // ---------- FILTERI  (obrada piksela) ----------
+        // Konvolucija za SHARPEN i DEBLUR (unsharp mask efekat)
+        function applyConvolution(imageData, kernel, divisor=1, offset=0) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const src = imageData.data;
+            const output = new Uint8ClampedArray(src.length);
+            const kSize = Math.sqrt(kernel.length);
+            const half = Math.floor(kSize/2);
+            
+            for(let y=0; y<height; y++){
+                for(let x=0; x<width; x++){
+                    let r=0,g=0,b=0;
+                    for(let ky=-half; ky<=half; ky++){
+                        for(let kx=-half; kx<=half; kx++){
+                            const px = Math.min(width-1, Math.max(0, x+kx));
+                            const py = Math.min(height-1, Math.max(0, y+ky));
+                            const idx = (py*width + px)*4;
+                            const weight = kernel[(ky+half)*kSize + (kx+half)];
+                            r += src[idx] * weight;
+                            g += src[idx+1] * weight;
+                            b += src[idx+2] * weight;
+                        }
+                    }
+                    const outIdx = (y*width + x)*4;
+                    output[outIdx] = Math.min(255, Math.max(0, (r/divisor) + offset));
+                    output[outIdx+1] = Math.min(255, Math.max(0, (g/divisor) + offset));
+                    output[outIdx+2] = Math.min(255, Math.max(0, (b/divisor) + offset));
+                    output[outIdx+3] = src[outIdx+3];
+                }
+            }
+            return new ImageData(output, width, height);
+        }
+        
+        // Sharpening kernel (laplasov ili high-pass)
+        function sharpenImage(imageData, amount) {
+            if(amount <= 0) return imageData;
+            // kernel za oštrenje: classic sharpen matrix
+            const strength = amount * 0.8;
+            const kernel = [
+                0, -strength, 0,
+                -strength, 1 + 4*strength, -strength,
+                0, -strength, 0
+            ];
+            return applyConvolution(imageData, kernel, 1, 0);
+        }
+        
+        // Deblur (Unsharp mask pristup) – efektno pojačavanje ivica
+        function deblurImage(imageData, amount) {
+            if(amount <= 0) return imageData;
+            // pravimo blagi gaussian blur kernel 3x3
+            const blurKernel = [1,2,1, 2,4,2, 1,2,1];
+            const blurDiv = 16;
+            const blurred = applyConvolution(imageData, blurKernel, blurDiv, 0);
+            // Razlika original - blurred (high pass)
+            const width = imageData.width;
+            const height = imageData.height;
+            const srcOrig = imageData.data;
+            const srcBlur = blurred.data;
+            const output = new Uint8ClampedArray(srcOrig.length);
+            for(let i=0; i<srcOrig.length; i+=4){
+                let rDiff = srcOrig[i] - srcBlur[i];
+                let gDiff = srcOrig[i+1] - srcBlur[i+1];
+                let bDiff = srcOrig[i+2] - srcBlur[i+2];
+                // dodaj razliku pojačanu sa amount
+                let r = srcOrig[i] + rDiff * amount;
+                let g = srcOrig[i+1] + gDiff * amount;
+                let b = srcOrig[i+2] + bDiff * amount;
+                output[i] = Math.min(255, Math.max(0, r));
+                output[i+1] = Math.min(255, Math.max(0, g));
+                output[i+2] = Math.min(255, Math.max(0, b));
+                output[i+3] = srcOrig[i+3];
+            }
+            return new ImageData(output, width, height);
+        }
+        
+        // MEDIAN FILTER za Denoise (odlican za smanjenje suma)
+        function medianFilter(imageData, radius) {
+            if(radius === 0) return imageData;
+            const size = radius * 2 + 1;
+            const width = imageData.width;
+            const height = imageData.height;
+            const src = imageData.data;
+            const out = new Uint8ClampedArray(src.length);
+            const half = Math.floor(size/2);
+            for(let y=0; y<height; y++){
+                for(let x=0; x<width; x++){
+                    const rVals = [], gVals = [], bVals = [];
+                    for(let ky=-half; ky<=half; ky++){
+                        for(let kx=-half; kx<=half; kx++){
+                            const px = Math.min(width-1, Math.max(0, x+kx));
+                            const py = Math.min(height-1, Math.max(0, y+ky));
+                            const idx = (py*width + px)*4;
+                            rVals.push(src[idx]);
+                            gVals.push(src[idx+1]);
+                            bVals.push(src[idx+2]);
+                        }
+                    }
+                    rVals.sort((a,b)=>a-b);
+                    gVals.sort((a,b)=>a-b);
+                    bVals.sort((a,b)=>a-b);
+                    const medianIdx = Math.floor(rVals.length/2);
+                    const outIdx = (y*width + x)*4;
+                    out[outIdx] = rVals[medianIdx];
+                    out[outIdx+1] = gVals[medianIdx];
+                    out[outIdx+2] = bVals[medianIdx];
+                    out[outIdx+3] = src[outIdx+3];
+                }
+            }
+            return new ImageData(out, width, height);
+        }
+        
+        // Upscale funkcija (koristi canvas sa high-quality interpolacijom)
+        async function upscaleImage(sourceImageData, scaleFactor, origWidth, origHeight) {
+            if(scaleFactor === 1.0) return sourceImageData;
+            // kreiramo canvas sa novom dimenzijom
+            const newWidth = Math.floor(origWidth * scaleFactor);
+            const newHeight = Math.floor(origHeight * scaleFactor);
+            if(newWidth < 1 || newHeight < 1) return sourceImageData;
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = newWidth;
+            tempCanvas.height = newHeight;
+            
+            // Pravimo ImageBitmap iz ImageData-a za kvalitetno skaliranje
+            const imgBitmap = await createImageBitmap(sourceImageData);
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = "high";
+            tempCtx.drawImage(imgBitmap, 0, 0, newWidth, newHeight);
+            const newImageData = tempCtx.getImageData(0, 0, newWidth, newHeight);
+            imgBitmap.close();
+            return { imageData: newImageData, width: newWidth, height: newHeight };
+        }
+        
+        // glavna obrada: redosled -> najpre upscale, pa denoise, pa deblur, pa sharpen (optimalno)
+        async function processImage(baseImageData, baseW, baseH, scale, sharpenAmt, denoiseRad, deblurAmt){
+            // 1. upscale
+            let currentImgData = baseImageData;
+            let currentW = baseW;
+            let currentH = baseH;
+            if(scale !== 1.0){
+                const upResult = await upscaleImage(currentImgData, scale, currentW, currentH);
+                currentImgData = upResult.imageData;
+                currentW = upResult.width;
+                currentH = upResult.height;
+            }
+            // 2. denoise (median)
+            if(denoiseRad > 0){
+                let radius = 1;
+                if(denoiseRad === 1) radius = 1;
+                else if(denoiseRad === 2) radius = 1; // za 1-2 slicno
+                else if(denoiseRad === 3) radius = 2;
+                else radius = 2;
+                if(denoiseRad >= 1) currentImgData = medianFilter(currentImgData, radius);
+            }
+            // 3. deblur (unsharp)
+            if(deblurAmt > 0){
+                currentImgData = deblurImage(currentImgData, deblurAmt * 0.9);
+            }
+            // 4. sharpen
+            if(sharpenAmt > 0){
+                currentImgData = sharpenImage(currentImgData, sharpenAmt);
+            }
+            return { imgData: currentImgData, width: currentW, height: currentH };
+        }
+        
+        async function applyAllFilters(){
+            if(!originalImgElement){
+                alert("Najprije učitajte sliku.");
+                return;
+            }
+            const scale = parseFloat(scaleSlider.value);
+            const sharpen = parseFloat(sharpenSlider.value);
+            const denoise = parseInt(denoiseSlider.value);
+            const deblur = parseFloat(deblurSlider.value);
+            
+            // uzmi original ImageData iz originalnog canvas (dimenzije original)
+            const origW = originalImgElement.width;
+            const origH = originalImgElement.height;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = origW;
+            tempCanvas.height = origH;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImgElement, 0, 0);
+            const originalFullImageData = tempCtx.getImageData(0, 0, origW, origH);
+            
+            try {
+                const result = await processImage(originalFullImageData, origW, origH, scale, sharpen, denoise, deblur);
+                const enhancedImgData = result.imgData;
+                const newW = result.width;
+                const newH = result.height;
+                enhancedCanvas.width = newW;
+                enhancedCanvas.height = newH;
+                ctxEnh.putImageData(enhancedImgData, 0, 0);
+            } catch(err){
+                console.error(err);
+                alert("Greška pri obradi. Pokušajte sa manjim uvećanjem ili drugom slikom.");
+            }
+        }
+        
+        // download funkcionalnost
+        function downloadEnhancedImage(format, quality = 0.92) {
+            if(!originalImgElement){
+                alert("Nema obrađene slike, prvo učitajte i primenite efekte.");
+                return;
+            }
+            // zapravo koristi trenutni sadržaj enhancedCanvas
+            const dataURL = enhancedCanvas.toDataURL(`image/${format}`, quality);
+            const link = document.createElement('a');
+            link.download = `enhanced_image.${format}`;
+            link.href = dataURL;
+            link.click();
+        }
+        
+        downloadPNG.addEventListener('click', () => downloadEnhancedImage('png', 1.0));
+        downloadJPG.addEventListener('click', () => downloadEnhancedImage('jpeg', 0.92));
+        downloadWebP.addEventListener('click', () => downloadEnhancedImage('webp', 0.9));
+        
+        applyBtn.addEventListener('click', () => {
+            if(!originalImgElement) alert("Prvo učitajte sliku.");
+            else applyAllFilters();
+        });
+        
+        // inicijalna postavka displaya
+        updateSlidersDisplay();
+        
+        // klik na original canvas - simulira ucitavanje
+        originalCanvas.addEventListener('click', () => {
+            upload.click();
+        });
+    })();
+</script>
+</body>
+</html>
